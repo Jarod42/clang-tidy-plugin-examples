@@ -1,0 +1,52 @@
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+
+jobs:
+  main:
+    name: CI
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: msys2/setup-msys2@v2
+        with:
+          msystem: clang64
+          update: true
+          install: >-
+            make
+            mingw-w64-clang-x86_64-llvm
+            mingw-w64-clang-x86_64-clang
+            ninja
+
+      - name: clang-tidy --version
+        shell: msys2 {0}
+        run: clang-tidy --version
+
+      - name: Configuration
+        shell: msys2 {0}
+        env:
+          CC: clang-16
+          CXX: clang++-16
+        run: |
+          cmake -B build -G Ninja -S . -D Clang_DIR=/usr/lib/cmake/clang-16 -D LLVM_DIR=/usr/lib/llvm-16/cmake
+
+      - name: Build
+        shell: msys2 {0}
+        run: cmake --build build
+      - name: Test
+        shell: msys2 {0}
+        run: |          
+          ctest --test-dir build
+
+          cmake -D CMAKE_EXPORT_COMPILE_COMMANDS=ON -B buildRepoUsingPlugin -S repo-using-plugin
+          cmake --build buildRepoUsingPlugin
+
+          clang-tidy --checks='coveo-awesomeprefixcheck' --load build/lib/libAwesomePrefixCheck.dll -p buildRepoUsingPlugin/compile_commands.json repo-using-plugin/src/code.cpp
