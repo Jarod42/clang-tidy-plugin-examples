@@ -1,9 +1,7 @@
 on:
+  workflow_dispatch:
   push:
-    branches:
-      - main
   pull_request:
-    types: [opened, synchronize, reopened]
 
 permissions:
   contents: read
@@ -21,10 +19,13 @@ jobs:
           msystem: clang64
           update: true
           install: >-
-            make
-            mingw-w64-clang-x86_64-llvm
-            mingw-w64-clang-x86_64-clang
             ninja
+          pacboy: >-
+            cmake:p
+            make:p
+            clang:p
+            clang-tools-extra:p
+            llvm:p
 
       - name: clang-tidy --version
         shell: msys2 {0}
@@ -36,7 +37,8 @@ jobs:
           CC: clang-16
           CXX: clang++-16
         run: |
-          cmake -B build -G Ninja -S . -D Clang_DIR=/usr/lib/cmake/clang-16 -D LLVM_DIR=/usr/lib/llvm-16/cmake
+          cmake -B build -G Ninja -S .
+      # -D Clang_DIR=/usr/lib/cmake/clang-16 -D LLVM_DIR=/usr/lib/llvm-16/cmake
 
       - name: Build
         shell: msys2 {0}
